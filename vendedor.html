@@ -1,0 +1,633 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Grupo Agora — Registro de Visitas</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --red: #CC0000;
+    --red-dark: #990000;
+    --red-glow: rgba(204,0,0,0.25);
+    --black: #0A0A0A;
+    --card: #191919;
+    --border: rgba(255,255,255,0.08);
+    --text: #F0F0F0;
+    --muted: #888888;
+    --muted2: #AAAAAA;
+    --success: #22C55E;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html, body {
+    height: 100%;
+    font-family: 'Inter', sans-serif;
+    background: var(--black);
+    color: var(--text);
+    overflow-x: hidden;
+  }
+
+  body::before {
+    content: '';
+    position: fixed; inset: 0;
+    background:
+      radial-gradient(ellipse 60% 50% at 80% 20%, rgba(204,0,0,0.1) 0%, transparent 60%),
+      radial-gradient(ellipse 40% 40% at 10% 80%, rgba(204,0,0,0.05) 0%, transparent 50%);
+    pointer-events: none; z-index: 0;
+  }
+
+  /* ─── TELAS ─── */
+  .screen {
+    position: relative;
+    z-index: 1;
+    display: none;
+    min-height: 100vh;
+  }
+  /* Tela de login usa flex para centralizar */
+  #tela-login        { align-items: center; justify-content: center; padding: 24px; }
+  #tela-login.ativa  { display: flex; }
+  /* Demais telas usam block */
+  #tela-form.ativa,
+  #tela-sucesso.ativa { display: block; }
+
+  /* ══════════════════════════════════════
+     TELA 1 — LOGIN
+  ══════════════════════════════════════ */
+  .login-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 44px 40px;
+    width: 100%;
+    max-width: 420px;
+    box-shadow: 0 24px 80px rgba(0,0,0,0.6), 0 0 0 1px rgba(204,0,0,0.08);
+    animation: fadeUp .45s ease;
+  }
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(28px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  .login-logo { text-align: center; margin-bottom: 34px; }
+  .login-logo img { height: 70px; width: auto; }
+  .login-logo h1 {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 2rem; letter-spacing: 4px;
+    color: var(--red); margin-top: 14px;
+  }
+  .login-logo p { color: var(--muted); font-size: 0.8rem; letter-spacing: 1px; text-transform: uppercase; margin-top: 4px; }
+
+  .form-group { margin-bottom: 18px; }
+  label {
+    display: block; font-size: 0.72rem; font-weight: 600;
+    letter-spacing: 1.5px; text-transform: uppercase;
+    color: var(--muted); margin-bottom: 8px;
+  }
+  select, input[type="password"], input[type="text"], input[type="date"], textarea {
+    width: 100%; background: rgba(255,255,255,0.04);
+    border: 1px solid var(--border); border-radius: 10px;
+    color: var(--text); font-family: 'Inter', sans-serif;
+    font-size: 0.95rem; padding: 13px 16px;
+    transition: border-color .2s, box-shadow .2s; outline: none; appearance: none;
+  }
+  select {
+    cursor: pointer;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' fill='%23888' viewBox='0 0 16 16'%3E%3Cpath d='M7.247 11.14L2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat; background-position: right 14px center; padding-right: 40px;
+  }
+  select option { background: #222; }
+  select:focus, input:focus, textarea:focus {
+    border-color: var(--red); box-shadow: 0 0 0 3px var(--red-glow);
+  }
+  textarea { resize: vertical; min-height: 100px; line-height: 1.6; }
+
+  .btn-primary {
+    width: 100%; background: var(--red); color: #fff; border: none;
+    border-radius: 10px; padding: 15px;
+    font-family: 'Bebas Neue', sans-serif; font-size: 1.1rem; letter-spacing: 2px;
+    cursor: pointer; transition: background .2s, transform .1s, box-shadow .2s;
+    box-shadow: 0 4px 20px rgba(204,0,0,0.35);
+  }
+  .btn-primary:hover  { background: var(--red-dark); box-shadow: 0 6px 28px rgba(204,0,0,0.5); }
+  .btn-primary:active { transform: scale(0.98); }
+  .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  .msg-erro {
+    background: rgba(204,0,0,0.1); border: 1px solid rgba(204,0,0,0.3);
+    border-radius: 8px; padding: 10px 14px; font-size: 0.82rem;
+    color: #ff6666; margin-bottom: 16px; display: none;
+  }
+
+  .spinner {
+    display: inline-block; width: 16px; height: 16px;
+    border: 2px solid rgba(255,255,255,0.3); border-top-color: #fff;
+    border-radius: 50%; animation: spin .6s linear infinite;
+    vertical-align: middle; margin-right: 8px;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ══════════════════════════════════════
+     HEADER COMPARTILHADO (telas 2 e 3)
+  ══════════════════════════════════════ */
+  .app-header {
+    position: sticky; top: 0; z-index: 100;
+    background: rgba(10,10,10,0.94); backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border);
+    padding: 12px 20px; display: flex; align-items: center; justify-content: space-between;
+  }
+  .app-header-logo { display: flex; align-items: center; gap: 10px; }
+  .app-header-logo img { height: 38px; width: auto; }
+  .app-header-title { font-family: 'Bebas Neue', sans-serif; font-size: 1rem; letter-spacing: 2px; color: var(--muted); }
+  .user-chip {
+    display: flex; align-items: center; gap: 8px;
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 50px; padding: 5px 14px 5px 6px;
+    font-size: 0.8rem; cursor: pointer; transition: border-color .2s;
+  }
+  .user-chip:hover { border-color: var(--red); }
+  .user-chip-avatar {
+    width: 26px; height: 26px; border-radius: 50%; background: var(--red);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.7rem; font-weight: 700;
+  }
+
+  /* ══════════════════════════════════════
+     TELA 2 — FORMULÁRIO
+  ══════════════════════════════════════ */
+  .form-hero {
+    background: linear-gradient(135deg, var(--card) 0%, rgba(204,0,0,0.07) 100%);
+    border-bottom: 1px solid var(--border); padding: 24px 20px 20px;
+  }
+  .form-hero h2 { font-family: 'Bebas Neue', sans-serif; font-size: 1.8rem; letter-spacing: 3px; color: var(--red); }
+  .form-hero p  { color: var(--muted); font-size: 0.83rem; margin-top: 4px; }
+
+  .form-body { padding: 20px; max-width: 680px; margin: 0 auto; padding-bottom: 60px; }
+
+  .form-card {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 16px; padding: 22px; margin-bottom: 14px;
+  }
+  .form-card-title {
+    font-family: 'Bebas Neue', sans-serif; font-size: 0.95rem; letter-spacing: 2px;
+    color: var(--red); margin-bottom: 16px; display: flex; align-items: center; gap: 8px;
+  }
+  .form-card-title svg { width: 16px; height: 16px; flex-shrink: 0; }
+
+  .radio-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .radio-opt  { position: relative; }
+  .radio-opt input[type="radio"] { position: absolute; opacity: 0; width: 0; height: 0; }
+  .radio-lbl {
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+    background: rgba(255,255,255,0.04); border: 2px solid var(--border);
+    border-radius: 12px; padding: 14px 10px; cursor: pointer;
+    font-size: 0.88rem; font-weight: 600; transition: all .2s; user-select: none;
+  }
+  .radio-opt input:checked + .radio-lbl { border-color: var(--red); background: rgba(204,0,0,0.1); color: #ff5555; }
+  .radio-dot { width: 10px; height: 10px; border-radius: 50%; border: 2px solid var(--muted); transition: all .2s; flex-shrink: 0; }
+  .radio-opt input:checked + .radio-lbl .radio-dot { background: var(--red); border-color: var(--red); }
+
+  .emissora-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .em-opt { position: relative; }
+  .em-opt input[type="checkbox"] { position: absolute; opacity: 0; width: 0; height: 0; }
+  .em-lbl {
+    display: flex; align-items: center; gap: 10px;
+    background: rgba(255,255,255,0.04); border: 2px solid var(--border);
+    border-radius: 12px; padding: 11px 13px; cursor: pointer;
+    font-size: 0.82rem; font-weight: 600; transition: all .2s; user-select: none;
+  }
+  .em-opt input:checked + .em-lbl { border-color: var(--red); background: rgba(204,0,0,0.1); }
+  .em-icon { width: 30px; height: 30px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 1rem; flex-shrink: 0; }
+
+  .char-count { text-align: right; font-size: 0.7rem; color: var(--muted); margin-top: 5px; }
+
+  /* ══════════════════════════════════════
+     TELA 3 — SUCESSO
+  ══════════════════════════════════════ */
+  .sucesso-body {
+    min-height: calc(100vh - 62px); display: flex; flex-direction: column;
+    align-items: center; justify-content: center; padding: 40px 24px; text-align: center;
+  }
+  .sucesso-icone {
+    width: 86px; height: 86px; border-radius: 50%;
+    background: rgba(34,197,94,0.1); border: 2px solid var(--success);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 2.2rem; margin-bottom: 24px;
+    animation: popIn .4s cubic-bezier(.34,1.56,.64,1);
+  }
+  @keyframes popIn { from { transform: scale(0); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+  .sucesso-body h2 { font-family: 'Bebas Neue', sans-serif; font-size: 2.2rem; letter-spacing: 3px; color: var(--success); }
+  .sucesso-msg { color: var(--muted2); font-size: 0.9rem; margin: 10px 0 32px; max-width: 320px; line-height: 1.6; }
+  .sucesso-btns { display: flex; flex-direction: column; gap: 10px; width: 100%; max-width: 300px; }
+  .btn-outline {
+    background: transparent; border: 1px solid var(--border); color: var(--muted2);
+    border-radius: 10px; padding: 13px; font-family: 'Inter', sans-serif;
+    font-size: 0.88rem; font-weight: 500; cursor: pointer; transition: all .2s;
+  }
+  .btn-outline:hover { border-color: var(--red); color: var(--red); }
+
+  @media (max-width: 480px) {
+    .login-card { padding: 32px 22px; }
+    .emissora-grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ══════════════════════════════════════
+     TELA 1 — LOGIN
+══════════════════════════════════════ -->
+<div id="tela-login" class="screen ativa">
+  <div class="login-card">
+    <div class="login-logo">
+      <img src="Logo-Grupo-Agora-Png-400-300.png" alt="Grupo Agora"
+        onerror="this.outerHTML='<div style=\'font-family:Bebas Neue,sans-serif;font-size:2.8rem;color:#CC0000;letter-spacing:5px;\'>AGORA</div>'">
+      <h1>GRUPO AGORA</h1>
+      <p>Controle de Visitas</p>
+    </div>
+
+    <div class="msg-erro" id="login-erro"></div>
+
+    <div class="form-group">
+      <label>Seu nome</label>
+      <select id="login-select">
+        <option value="">Carregando...</option>
+      </select>
+    </div>
+
+    <div class="form-group">
+      <label>Senha</label>
+      <input type="password" id="login-senha" placeholder="••••••"
+        onkeydown="if(event.key==='Enter') fazerLogin()">
+    </div>
+
+    <button class="btn-primary" id="btn-entrar" onclick="fazerLogin()">ENTRAR</button>
+
+    <p style="text-align:center;margin-top:20px;font-size:0.74rem;color:var(--muted);">
+      Acesso restrito a vendedores cadastrados.<br>Em caso de dúvida, contate o gerente.
+    </p>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════
+     TELA 2 — FORMULÁRIO DE VISITA
+══════════════════════════════════════ -->
+<div id="tela-form" class="screen">
+  <header class="app-header">
+    <div class="app-header-logo">
+      <img src="Logo-Grupo-Agora-Png-400-300.png" alt="Grupo Agora" onerror="this.style.display='none'">
+      <span class="app-header-title">VISITAS</span>
+    </div>
+    <div class="user-chip" onclick="fazerLogout()">
+      <div class="user-chip-avatar" id="avatar-f">?</div>
+      <span id="nome-f">Vendedor</span>
+      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+        <polyline points="16 17 21 12 16 7"/>
+        <line x1="21" y1="12" x2="9" y2="12"/>
+      </svg>
+    </div>
+  </header>
+
+  <div class="form-hero">
+    <h2>REGISTRAR VISITA</h2>
+    <p id="form-subtitulo">Preencha os dados da sua visita abaixo</p>
+  </div>
+
+  <div class="form-body">
+
+    <div class="form-card">
+      <div class="form-card-title">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+        INFORMAÇÕES DA VISITA
+      </div>
+      <div class="form-group">
+        <label>Data da visita *</label>
+        <input type="datetime-local" id="v-data">
+      </div>
+      <div class="form-group" style="margin-bottom:0">
+        <label>Cliente visitado *</label>
+        <input type="text" id="v-cliente" placeholder="Nome da empresa / cliente">
+      </div>
+    </div>
+
+    <div class="form-card">
+      <div class="form-card-title">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+        STATUS DA VISITA *
+      </div>
+      <div class="radio-grid">
+        <div class="radio-opt">
+          <input type="radio" name="status" id="s-recebido" value="Recebido">
+          <label class="radio-lbl" for="s-recebido"><span class="radio-dot"></span> ✅ Recebido</label>
+        </div>
+        <div class="radio-opt">
+          <input type="radio" name="status" id="s-remarcou" value="Remarcou">
+          <label class="radio-lbl" for="s-remarcou"><span class="radio-dot"></span> 🔄 Remarcou</label>
+        </div>
+      </div>
+    </div>
+
+    <div class="form-card">
+      <div class="form-card-title">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+        RELATÓRIO DA VISITA
+      </div>
+      <div class="form-group" style="margin-bottom:0">
+        <textarea id="v-relatorio" placeholder="Descreva como foi a visita, pontos discutidos, próximos passos..." maxlength="1000"
+          oninput="document.getElementById('chars').textContent=this.value.length"></textarea>
+        <div class="char-count"><span id="chars">0</span>/1000</div>
+      </div>
+    </div>
+
+    <div class="form-card">
+      <div class="form-card-title">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="2"/><path d="M16.24 7.76a6 6 0 0 1 0 8.49m-8.48-.01a6 6 0 0 1 0-8.49m11.31-2.82a10 10 0 0 1 0 14.14m-14.14 0a10 10 0 0 1 0-14.14"/></svg>
+        EMISSORA(S) *
+      </div>
+      <div class="emissora-grid">
+        <div class="em-opt">
+          <input type="checkbox" id="e-tv" value="TV Cidade Record">
+          <label class="em-lbl" for="e-tv"><div class="em-icon" style="background:rgba(30,80,200,0.15)">📺</div>TV Cidade Record</label>
+        </div>
+        <div class="em-opt">
+          <input type="checkbox" id="e-jp" value="Jovem Pan">
+          <label class="em-lbl" for="e-jp"><div class="em-icon" style="background:rgba(255,150,0,0.15)">📻</div>Jovem Pan</label>
+        </div>
+        <div class="em-opt">
+          <input type="checkbox" id="e-mt" value="AGORA MT">
+          <label class="em-lbl" for="e-mt"><div class="em-icon" style="background:rgba(204,0,0,0.15)">🗞️</div>AGORA MT</label>
+        </div>
+        <div class="em-opt">
+          <input type="checkbox" id="e-fm" value="AGORA FM">
+          <label class="em-lbl" for="e-fm"><div class="em-icon" style="background:rgba(204,0,0,0.15)">🎙️</div>AGORA FM</label>
+        </div>
+      </div>
+    </div>
+
+    <div class="form-card">
+      <div class="form-card-title">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
+        PRODUTO OFERECIDO *
+      </div>
+      <div class="form-group" style="margin-bottom:0">
+        <input type="text" id="v-produto" placeholder="Ex: Spot 30s, Patrocínio, Anúncio Digital...">
+      </div>
+    </div>
+
+    <div class="msg-erro" id="form-erro" style="margin-bottom:14px;"></div>
+
+    <button class="btn-primary" id="btn-registrar" onclick="registrarVisita()">
+      REGISTRAR VISITA
+    </button>
+
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════
+     TELA 3 — CONFIRMAÇÃO
+══════════════════════════════════════ -->
+<div id="tela-sucesso" class="screen">
+  <header class="app-header">
+    <div class="app-header-logo">
+      <img src="Logo-Grupo-Agora-Png-400-300.png" alt="Grupo Agora" onerror="this.style.display='none'">
+      <span class="app-header-title">VISITAS</span>
+    </div>
+    <div class="user-chip" onclick="fazerLogout()">
+      <div class="user-chip-avatar" id="avatar-s">?</div>
+      <span id="nome-s">Vendedor</span>
+      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+        <polyline points="16 17 21 12 16 7"/>
+        <line x1="21" y1="12" x2="9" y2="12"/>
+      </svg>
+    </div>
+  </header>
+
+  <div class="sucesso-body">
+    <div class="sucesso-icone">✅</div>
+    <h2>VISITA REGISTRADA!</h2>
+    <p class="sucesso-msg" id="sucesso-msg">Sua visita foi salva com sucesso.</p>
+    <div class="sucesso-btns">
+      <button class="btn-primary" onclick="novaVisita()">+ NOVA VISITA</button>
+      <button class="btn-outline" onclick="fazerLogout()">Sair</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ─── CONFIG ───────────────────────────────────────────────────────
+// ⚠️ Substitua pela URL gerada ao implantar o Google Apps Script
+const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwQXz-Ge2STroyY5yw17e8oR3ljExMpQevdKU0SUTLPCX59yoNh45WR5vNm_p2Kyz6pjQ/exec';
+
+let usuarioAtual = null;
+
+// ─── NAVEGAÇÃO ────────────────────────────────────────────────────
+function mostrarTela(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('ativa'));
+  document.getElementById(id).classList.add('ativa');
+  window.scrollTo(0, 0);
+}
+
+// ─── JSONP — resolve CORS com Google Apps Script ──────────────────
+function gasGet(params) {
+  return new Promise((resolve, reject) => {
+    const cb    = '_cb_' + Date.now() + '_' + Math.random().toString(36).slice(2);
+    const url   = SCRIPT_URL + '?' + new URLSearchParams({ ...params, callback: cb });
+    const tag   = document.createElement('script');
+    const timer = setTimeout(() => { limpar(); reject(new Error('Timeout — servidor não respondeu')); }, 15000);
+
+    function limpar() {
+      clearTimeout(timer);
+      delete window[cb];
+      if (tag.parentNode) tag.parentNode.removeChild(tag);
+    }
+
+    window[cb]  = data => { limpar(); resolve(data); };
+    tag.onerror = ()   => { limpar(); reject(new Error('Falha de rede')); };
+    tag.src     = url;
+    document.head.appendChild(tag);
+  });
+}
+
+// ─── INICIALIZAÇÃO ────────────────────────────────────────────────
+async function init() {
+  const _agora = new Date(); const _pad = n => String(n).padStart(2,'0');
+  document.getElementById('v-data').value = _agora.getFullYear()+'-'+_pad(_agora.getMonth()+1)+'-'+_pad(_agora.getDate())+'T'+_pad(_agora.getHours())+':'+_pad(_agora.getMinutes());
+
+  const sel   = document.getElementById('login-select');
+  const errEl = document.getElementById('login-erro');
+
+  if (SCRIPT_URL.includes('SEU_SCRIPT_ID')) {
+    sel.innerHTML = '<option value="">⚠️ URL não configurada</option>';
+    errEl.textContent   = 'O sistema ainda não foi configurado. Informe a URL do Google Apps Script.';
+    errEl.style.display = 'block';
+    document.getElementById('btn-entrar').disabled = true;
+    return;
+  }
+
+  sel.innerHTML = '<option value="">Carregando...</option>';
+  sel.disabled  = true;
+
+  try {
+    const res = await gasGet({ action: 'getVendedores' });
+    sel.innerHTML = '<option value="">Selecione seu nome...</option>';
+    if (res.vendedores && res.vendedores.length > 0) {
+      res.vendedores.forEach(v => { sel.innerHTML += `<option value="${v}">${v}</option>`; });
+    } else {
+      sel.innerHTML = '<option value="">Nenhum vendedor cadastrado ainda</option>';
+    }
+  } catch (e) {
+    sel.innerHTML       = '<option value="">Erro ao carregar — tente novamente</option>';
+    errEl.textContent   = `Não foi possível conectar: ${e.message}`;
+    errEl.style.display = 'block';
+  }
+
+  sel.disabled = false;
+}
+
+// ─── LOGIN ────────────────────────────────────────────────────────
+async function fazerLogin() {
+  const nome  = document.getElementById('login-select').value;
+  const senha = document.getElementById('login-senha').value;
+  const errEl = document.getElementById('login-erro');
+  const btn   = document.getElementById('btn-entrar');
+
+  errEl.style.display = 'none';
+
+  if (!nome || !senha) {
+    errEl.textContent   = 'Selecione seu nome e informe a senha.';
+    errEl.style.display = 'block';
+    return;
+  }
+
+  btn.disabled  = true;
+  btn.innerHTML = '<span class="spinner"></span>VERIFICANDO...';
+
+  try {
+    const res = await gasGet({ action: 'login', nome, senha });
+    if (res.success) {
+      loginOk(nome);
+    } else {
+      errEl.textContent   = 'Usuário ou senha incorretos.';
+      errEl.style.display = 'block';
+    }
+  } catch (e) {
+    errEl.textContent   = `Não foi possível conectar: ${e.message}`;
+    errEl.style.display = 'block';
+  }
+
+  btn.disabled  = false;
+  btn.innerHTML = 'ENTRAR';
+}
+
+function loginOk(nome) {
+  usuarioAtual = nome;
+  const iniciais = nome.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
+  const primeiro = nome.split(' ')[0];
+
+  document.getElementById('avatar-f').textContent    = iniciais;
+  document.getElementById('nome-f').textContent      = primeiro;
+  document.getElementById('avatar-s').textContent    = iniciais;
+  document.getElementById('nome-s').textContent      = primeiro;
+  document.getElementById('form-subtitulo').textContent =
+    `Olá, ${primeiro}! Preencha os dados da visita abaixo.`;
+
+  mostrarTela('tela-form');
+}
+
+// ─── LIMPAR FORMULÁRIO ────────────────────────────────────────────
+function limparFormulario() {
+  document.getElementById('v-cliente').value   = '';
+  document.getElementById('v-relatorio').value = '';
+  document.getElementById('v-produto').value   = '';
+  document.getElementById('chars').textContent = '0';
+  document.querySelectorAll('input[name="status"]').forEach(r => r.checked = false);
+  document.querySelectorAll('.em-opt input').forEach(c => c.checked = false);
+  document.getElementById('form-erro').style.display = 'none';
+  // Data/hora atual no fuso local (sem desvio UTC)
+  const agora = new Date();
+  const pad = n => String(n).padStart(2,'0');
+  const local = agora.getFullYear() + '-' + pad(agora.getMonth()+1) + '-' + pad(agora.getDate())
+              + 'T' + pad(agora.getHours()) + ':' + pad(agora.getMinutes());
+  document.getElementById('v-data').value = local;
+}
+
+function fazerLogout() {
+  usuarioAtual = null;
+  limparFormulario();
+  document.getElementById('login-senha').value    = '';
+  document.getElementById('login-select').value   = '';
+  document.getElementById('login-erro').style.display = 'none';
+  mostrarTela('tela-login');
+}
+
+// ─── NOVA VISITA (mantém login, limpa formulário) ─────────────────
+function novaVisita() {
+  limparFormulario();
+  mostrarTela('tela-form');
+}
+
+// ─── REGISTRAR VISITA ─────────────────────────────────────────────
+async function registrarVisita() {
+  const data      = document.getElementById('v-data').value;
+  const cliente   = document.getElementById('v-cliente').value.trim();
+  const statusEl  = document.querySelector('input[name="status"]:checked');
+  const relatorio = document.getElementById('v-relatorio').value.trim();
+  const produto   = document.getElementById('v-produto').value.trim();
+  const errEl     = document.getElementById('form-erro');
+
+  const emissoras = ['e-tv','e-jp','e-mt','e-fm']
+    .filter(id => document.getElementById(id).checked)
+    .map(id => document.getElementById(id).value);
+
+  errEl.style.display = 'none';
+
+  if (!data || !cliente || !statusEl || emissoras.length === 0 || !produto) {
+    errEl.textContent   = 'Preencha todos os campos obrigatórios (*).';
+    errEl.style.display = 'block';
+    errEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    return;
+  }
+
+  const btn = document.getElementById('btn-registrar');
+  btn.disabled  = true;
+  btn.innerHTML = '<span class="spinner"></span>SALVANDO...';
+
+  try {
+    const res = await gasGet({
+      action:    'addVisita',
+      vendedor:  usuarioAtual,
+      data,
+      cliente,
+      status:    statusEl.value,
+      relatorio,
+      emissoras: emissoras.join(', '),
+      produto,
+      timestamp: (() => { const _t=new Date(),_p=n=>String(n).padStart(2,'0'); return _t.getFullYear()+'-'+_p(_t.getMonth()+1)+'-'+_p(_t.getDate())+'T'+_p(_t.getHours())+':'+_p(_t.getMinutes()); })()
+    });
+
+    if (!res.success) throw new Error(res.error || 'Erro ao salvar');
+
+    document.getElementById('sucesso-msg').textContent =
+      `Visita ao cliente "${cliente}" registrada com sucesso!`;
+
+    mostrarTela('tela-sucesso');
+
+  } catch (e) {
+    errEl.textContent   = `Erro ao registrar: ${e.message}. Tente novamente.`;
+    errEl.style.display = 'block';
+    errEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+
+  btn.disabled  = false;
+  btn.innerHTML = 'REGISTRAR VISITA';
+}
+
+
+
+// ─── START ────────────────────────────────────────────────────────
+init();
+</script>
+</body>
+</html>
